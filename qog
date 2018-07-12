@@ -1,0 +1,205 @@
+#!/usr/bin/perl
+
+use warnings;
+use Getopt::Long qw(GetOptions);
+
+# Some local variables
+my $total_time=0, $total_elapsed=0, $overestimate=0, $format="", $debug=0, $days=30, $jobcount=0;
+
+# Command line options
+my $user=undef, $account=undef;
+
+# Default arguments for sacct
+$sacct_arguments="-o TimeLimit,ElapsedRaw -X -n -P -s CD,TO";
+
+
+$usage="Usage: $0 --help | --all --days [number-of-days] | --days [number-of-days] --user \$USER --account \$ACCOUNT\n";
+
+GetOptions('user=s' => \$user, 'account=s' => \$account, 'debug+' => \$debug, 'help' => \$help, 'all' => \$all, 'days=i' => \$days) or die $usage;
+
+if ( $help )
+{
+	print "$usage";
+	exit 0;
+}
+
+if ( ( $ENV{'USER'} eq "root" ) && ( ! ( $user || $account || $all ) ) )
+{
+	print "WARNING: when run as root without options it defaults to --all\n";
+	$all=1;
+}
+if ( $all && ( $user || $account ) )
+{
+	print "Cannot specify both --all and a restriction like --user or --account!\n";
+	exit 1;
+}
+
+# From the Perl FAQ
+sub commify {
+	local $_  = shift;
+	1 while s/^([-+]?\d+)(\d{3})/$1,$2/;
+	return $_;
+}
+
+# Based on idea from StackOverflow (of course)
+sub format_seconds
+{
+	my $tsecs = shift, $daydesc="day";
+
+	use integer;
+	my $secs  = $tsecs % 60;
+	my $tmins = $tsecs / 60;
+	my $mins  = $tmins % 60;
+	my $thrs  = $tmins / 60;
+	my $hrs   = $thrs  % 24;
+	my $days  = $thrs  / 24;
+
+	if (wantarray) {
+	    return ($days, $hrs, $mins, $secs);
+	}
+
+	my $age = "";
+	if ( $days > 1 )
+	{
+		$daydesc="days";
+	}
+	$age = commify($days) . " $daydesc " if $days || $age;
+	$age .= sprintf("%02u:%02u:%02u",$hrs,$mins,$secs);
+
+	$age =~ s/ $//;
+
+	return $age;
+}
+
+# I wrote this.. ;-)
+sub time_to_seconds
+{
+	my ($slurm_time) = @_;
+	my $mydays=0, $myhours=0, $myminutes=0, $myseconds=0, $mytime="";
+	if ( $slurm_time =~ /-/ )
+	{
+		($mydays, $mytime) = split( '-', $slurm_time);
+		
+	}
+	else
+	{
+		$mydays=0;
+		$mytime=$slurm_time;
+	}
+	($myhours, $myminutes, $myseconds) =  split(':', $mytime);
+
+	$myseconds = $myseconds + ( $myminutes * 60 );
+	$myseconds = $myseconds + ( $myhours * 60 * 60 );
+	$myseconds = $myseconds + ( $mydays * 60 * 60 * 24 );
+
+	return $myseconds;
+}
+
+
+if ( defined $user )
+{
+	$format="-u $user";
+	$debug && print "DEBUG: Set format to $format\n";
+}
+
+if ( defined $account )
+{
+	if ( !( $ENV{"USER"} eq "root" ) )
+	{
+		print "$0: --account only works for the root user, sorry.\n";
+		exit 1;
+	}
+	$format=$format . " " ."-A $account";
+	$debug && print "DEBUG: Set format to $format\n";
+}
+
+if ( defined $all )
+{
+	if ( !( $ENV{"USER"} eq "root" ) )
+	{
+		print "$0: --all is only allowed for the root user, sorry.\n";
+		exit 1;
+	}
+	$format=$format . " " ."--allusers";
+	$debug && print "DEBUG: Set format to $format\n";
+	if ( $days > 7 )
+	{
+		print "Capping look back to 7 days for --all\n";
+		$days = 7;
+	}
+}
+
+open( DATE, "date --date='$days days ago' +%Y-%m-%d|" ) || die "Failed to run date command: $!";
+$monthago=<DATE>;
+close(DATE);
+
+chomp($monthago);
+
+$monthago || die "Failed to get date: $!";
+
+$format=$format . " " ."--start=$monthago";
+
+$debug && print "DEBUG: sacct $format $sacct_arguments\n";
+
+open( SACCT, "sacct $format $sacct_arguments|" ) || die "Failed to run sacct: $!";
+
+while(<SACCT>)
+{
+	chomp;
+	($timelimit, $elapsed) = split /\|/;
+	( $debug > 1 ) && print "DEBUG: timelimit = $timelimit, elapsed = $elapsed\n";
+	#print "Limit: " . $timelimit . " Raw limit: " . time_to_seconds($timelimit) . " Elapsed: " . $elapsed . "\n";
+	$total_time += time_to_seconds($timelimit);
+	$total_elapsed += $elapsed;
+	$jobcount++;
+}
+
+close(SACCT);
+
+if ( $total_elapsed == 0 )
+{
+	print "\nThere is no usage for this last month";
+	$user && print " for user $user";
+	$account && print " for account $account";
+	print "\n\n";
+	exit 0;
+}
+
+
+$overestimate=$total_time/$total_elapsed;
+
+$formatted_time =  format_seconds($total_time);
+$formatted_elapsed =  format_seconds($total_elapsed);
+
+$debug && print "DEBUG: Total time: $total_time Elapsed time: $total_elapsed Overestimate: $overestimate\n";
+
+if ( ! defined $user )
+{
+	$user1="your";
+}
+else
+{
+	$user1="$user\'s";
+}
+if ( $account )
+{
+	$user1="their";
+}
+if ( $all )
+{
+	$user1="all";
+}
+
+if ( $days > 1 )
+{
+	$dayword="days";
+}
+else
+{
+	$dayword="day";
+}
+
+print "\nOver the last $days $dayword $user1 jobs used $formatted_elapsed over " . commify($jobcount) . " jobs\n";
+print "They requested a total time of $formatted_time\n" ;
+
+printf "\nThis equates to an overestimate of %.1f times the actual usage\n\n" , $overestimate;
