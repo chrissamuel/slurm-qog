@@ -224,7 +224,7 @@ if ( $overestimate > 2 )
 }
 else
 {
-	$only="actual";
+	$only="actually";
 }
 
 print "\nOver the last $days $dayword $user1 " . commify($jobcount) . " jobs requested $formatted_time in time\n";
