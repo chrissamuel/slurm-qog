@@ -8,6 +8,8 @@ $ ./qog --help
 Usage: ./qog --help | --all --days [number-of-days] | --days [number-of-days] --user $USER --account $ACCOUNT
 ```
 
+*You must have `sacct` in your $PATH of course!*
+
 # Examples
 
 For the root user it will summarise the QOG for the last 7 days of usage.
