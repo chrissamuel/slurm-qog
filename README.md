@@ -3,6 +3,11 @@ Perl script to generate "quality-of-guess" feedback for users about their reques
 
 https://github.com/chrissamuel/slurm-qog
 
+This script counts up the requested walltime and actual walltime of all Slurm
+jobs that are state COMPLETED or TIMEOUT.  This means we do not hold the user
+responsible for jobs that crash or were cancelled for some reason as they
+ended prior to their normal completion.
+
 # Usage
 
 ```
