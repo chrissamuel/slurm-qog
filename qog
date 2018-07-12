@@ -218,7 +218,21 @@ else
 	$dayword="day";
 }
 
-print "\nOver the last $days $dayword $user1 jobs used $formatted_elapsed over " . commify($jobcount) . " jobs\n";
-print "They requested a total time of $formatted_time\n" ;
+if ( $overestimate > 2 )
+{
+	$only="only";
+}
+else
+{
+	$only="actual";
+}
+
+print "\nOver the last $days $dayword $user1 " . commify($jobcount) . " jobs requested $formatted_time in time\n";
+print "These jobs $only used $formatted_elapsed of total time\n" ;
 
 printf "\nThis equates to an overestimate of %.1f times the actual usage\n\n" , $overestimate;
+
+if ( $overestimate > 3 )
+{
+	print "**** PLEASE REVIEW YOUR REQUESTED TIMELIMITS ****\n\n";
+}
