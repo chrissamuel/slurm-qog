@@ -233,7 +233,7 @@ print "These jobs $only used $formatted_elapsed of total time\n" ;
 printf "\nThis equates to an overestimate of %.1f times the actual usage\n\n" , $overestimate;
 
 # No need to do anything more if root.
-if ( !( $ENV{"USER"} eq "root" ) )
+if ( ( $ENV{"USER"} eq "root" ) )
 {
 	exit 0;
 }
