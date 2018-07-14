@@ -232,6 +232,11 @@ print "These jobs $only used $formatted_elapsed of total time\n" ;
 
 printf "\nThis equates to an overestimate of %.1f times the actual usage\n\n" , $overestimate;
 
+if ( $overestimate < 1.51 )
+{
+
+	print "**** Well done on making good predictions, keep it up! ****\n\n";
+}
 if ( $overestimate > 3 )
 {
 	print "**** PLEASE REVIEW YOUR REQUESTED TIMELIMITS ****\n\n";
