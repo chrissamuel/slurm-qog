@@ -49,7 +49,7 @@ This equates to an overestimate of 7.7 times the actual usage
 A user can summarise over less time than the default.
 
 ```
-$ ./qog --days=5
+$ qog --days=5
 
 Over the last 5 days your jobs used 00:05:08 over 4 jobs
 They requested a total time of 00:20:00
@@ -63,7 +63,7 @@ This equates to an overestimate of 3.9 times the actual usage
 You can also specify a Slurm account, if you are in that account (or root).
 
 ```
-# ./qog --account=hpcadmin
+# qog --account=hpcadmin
 
 Over the last 30 days their jobs used 01:39:54 over 96 jobs
 They requested a total time of 13:40:00
