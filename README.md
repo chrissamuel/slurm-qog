@@ -60,7 +60,7 @@ This equates to an overestimate of 3.9 times the actual usage
 
 ```
 
-You can also specify a Slurm account, if you are root.
+You can also specify a Slurm account, if you are in that account (or root).
 
 ```
 # ./qog --account=hpcadmin

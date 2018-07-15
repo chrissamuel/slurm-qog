@@ -125,8 +125,17 @@ if ( defined $account )
 {
 	if ( !( $ENV{"USER"} eq "root" ) )
 	{
-		print "$0: --account only works for the root user, sorry.\n";
-		exit 1;
+		my $accountOK="";
+		$debug && print "DEBUG: sacctmgr -n list account where user=$ENV{'USER'} account=$account withassoc format=account\n";
+		open (SACCT, "sacctmgr -n list account where user=$ENV{'USER'} account=$account withassoc format=account|") || die "Failed to run sacctmgr to determine access to requested account $account";
+		$accountOK=<SACCT>;
+		close SACCT;
+		if ( ! defined $accountOK )
+		{
+			print "Sorry, you do not appear to be in account $account.\n";
+			exit 1;
+		}
+		$debug && print "DEBUG: Access to $account granted\n";
 	}
 	$format=$format . " " ."-A $account";
 	$debug && print "DEBUG: Set format to $format\n";
